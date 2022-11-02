@@ -24,7 +24,7 @@ def compute_kernel(X_train, X_test, name, **kwargs):
             # For multilayer networks, read it from the disk
             K = np.load("NTK_Kernels/" + 'Train_NTK_%d_layers_%d_%s.npy'%(0, n_layers, dataset_name))
             KT = np.load("NTK_Kernels/" + 'Test_NTK_%d_layers_%d_%s.npy'%(0, n_layers, dataset_name))
-    print(K.shape, KT.shape)
+    # print(K.shape, KT.shape)
     assert K.shape[0] == n_train and K.shape[1] == n_train
     assert K.dtype == np.float32
     assert KT.shape[0] == n_test and KT.shape[1] == n_train

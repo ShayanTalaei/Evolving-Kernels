@@ -30,8 +30,9 @@ class IterativeKernelModel:
 #         self.make_kernel_matrices(dataset=dataset_name, ind=0, **kwargs)
         self.logs = []
     
-    def set_Ds(self, yhat=None, preds=None):
-        if yhat == None:
+    def set_Ds(self, **kwargs):
+        yhat, preds = kwargs.get("yhat", None), kwargs.get("preds", None)
+        if "yhat" not in kwargs.keys():
             self.D_train = np.eye(self.n_train, dtype=np.float32)
             self.D_test = np.eye(self.n_test, dtype=np.float32) 
         else:
@@ -56,7 +57,7 @@ class IterativeKernelModel:
         if weights == None:
             weights = np.ones(kernels_count)
         K, KT = np.zeros_like(self.K), np.zeros_like(self.KT)
-        for i in range(kernels_count):
+        for i in range(len(weights)):
             K += self.Ks[i] * weights[i]
             KT += self.KTs[i] * weights[i]
         self.K, self.KT = K, KT
@@ -78,7 +79,7 @@ class IterativeKernelModel:
         RK = K + reg * np.eye(n, dtype=np.float32)
         assert K.dtype == np.float32
         assert RK.dtype == np.float32
-        print('Solving kernel regression with %d observations and regularization param %f'%(n, reg))
+        # print('Solving kernel regression with %d observations and regularization param %f'%(n, reg))
         t1 = time.time()
         if self.should_expand:
             Theta = scl.solve(RK, ytrain, assume_a='sym')
