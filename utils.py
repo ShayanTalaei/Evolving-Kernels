@@ -20,7 +20,7 @@ def expand(y, mean, maxVal=None):
 
 def compute_accuracy(true_labels, preds):
         """This function computes the classification accuracy of the vector
-        preds. """bookboobookk
+        preds. """
         if true_labels.shape[1] == 1:
             mid = np.mean(true_labels)
             n = len(true_labels)
@@ -33,7 +33,7 @@ def compute_accuracy(true_labels, preds):
         predictions = np.argmax(preds, axis=1).astype(np.int32)
         return np.mean(groundTruth == predictions)
 
-def normalize(yhat, preds):
+def normalize_preds(yhat, preds):
     mean, std = np.mean(yhat), np.std(yhat)
     yhat = (yhat - mean)/std
     preds = (preds - mean)/std
@@ -95,3 +95,13 @@ def train_test_NN(datasets, epochs=20):
     print('Training Accuracy is %f'%(res["Train accuracy"]))
     print('Test Accuracy is %f'%(res["Test accuracy"]))
     return res
+
+def extract_feature_2D_table(data, feature):
+    table = {}
+    for key1, value1 in data.items():
+        row = {}
+        for key2, value2 in value1.items():
+            row[key2] = value2[feature]
+        table[key1] = row
+    return table
+

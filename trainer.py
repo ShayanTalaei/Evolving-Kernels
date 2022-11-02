@@ -24,18 +24,26 @@ class IterativeKernelModel:
             self.Y_test, maxVal = expand(self.Y_test, self.mean, maxVal=maxVal)
             self.mean = 0.0
 #         pdb.set_trace()
-        self.D_train, self.D_test = np.eye(self.n_train, dtype=np.float32), np.eye(self.n_test, dtype=np.float32)    
+        self.set_Ds() 
         self.K, self.KT = None, None
         self.Ks, self.KTs = [], []
-        self.Gs = [lambda x: x]
-        self.Fs = [lambda x: x]
-        self.make_kernel_matrices(dataset=dataset_name, ind=0, **kwargs)
+#         self.make_kernel_matrices(dataset=dataset_name, ind=0, **kwargs)
         self.logs = []
+    
+    def set_Ds(self, yhat=None, preds=None):
+        if yhat == None:
+            self.D_train = np.eye(self.n_train, dtype=np.float32)
+            self.D_test = np.eye(self.n_test, dtype=np.float32) 
+        else:
+            self.D_train = np.diag(yhat.flatten(), k=0)
+            self.D_test = np.diag(preds.flatten(), k=0)
     
     def make_kernel_matrices(self, ind, kernel, **kwargs):
         K, KT = compute_kernel(self.X_train, self.X_test, kernel, **kwargs)
         self.K = self.D_train @ K @ self.D_train
         self.KT = self.D_test @ KT @ self.D_train
+        ## Normalize the kernels
+        self.normalize_kernels()
         if ind < len(self.Ks):
             self.Ks[ind] = deepcopy(self.K)
             self.KTs[ind] = deepcopy(self.KT)
@@ -52,6 +60,7 @@ class IterativeKernelModel:
             K += self.Ks[i] * weights[i]
             KT += self.KTs[i] * weights[i]
         self.K, self.KT = K, KT
+        self.normalize_kernels()
         
     def reset_kernels(self, ind):
         self.K, self.KT = deepcopy(self.Ks[ind]), deepcopy(self.KTs[ind])
