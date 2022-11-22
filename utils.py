@@ -1,7 +1,8 @@
 import numpy as np
 import torch
 from torch import nn
-
+import gspread
+import pandas as pd
 
 
 import pdb
@@ -105,3 +106,19 @@ def extract_feature_2D_table(data, feature):
         table[key1] = row
     return table
 
+def update_spread_sheet(title, file_path):
+    print("Updating the spread sheet.")
+    logs = torch.load(file_path)
+    df = pd.DataFrame(logs).transpose()
+    gc = gspread.service_account(filename='iterative-learning-methods-4a3e9c5a47ae.json')
+    sh = gc.open_by_url('https://docs.google.com/spreadsheets/d/1vF_0iuL4E_sfiLjcL1dePgbHShk5Qj3R0gYJeCkXpCk/edit#gid=0')
+    worksheet_list = [ws.title for ws in sh.worksheets()]
+    if title not in worksheet_list:
+        print(f"Sheet {title} is created.")
+        worksheet = sh.add_worksheet(title=title, rows=150000, cols=6)
+    worksheet = sh.worksheet(title)
+    df["Instructions"] = df.index
+    new_df = df.filter(['Instructions', 'Train error', 'Test error', 'Train accuracy', 'Test accuracy'], axis=1)
+    worksheet.update([new_df.columns.values.tolist()] + new_df.values.tolist())
+
+    

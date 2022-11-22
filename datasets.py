@@ -11,9 +11,12 @@ import random
 sys.path.append('./linearized_neural_networks')
 from preprocess import *
 
+from sklearn.model_selection import train_test_split
+import torch
+
 ROOT = "./data"
 
-DATASETS = ["CIFAR10", "mnsit", "FMNIST2", "CIFAR2", "synth", "CIFAR3"]
+DATASETS = ["CIFAR10", "mnsit", "FMNIST2", "CIFAR2", "synth", "CIFAR3", "pointer_3", "pointer_majority_3_3", "pointer_majority_3_6"]
 
 HYPER_PARAMETERS = {}
 HYPER_PARAMETERS["CIFAR10"] = {"num_classes": 10, "mean": 0.1, "expand": True}
@@ -21,6 +24,9 @@ HYPER_PARAMETERS["CIFAR2"] = {"num_classes": 2, "mean": 0.0, "expand": False}
 HYPER_PARAMETERS["CIFAR3"] = {"num_classes": 3, "mean": 0.333, "expand": True}
 HYPER_PARAMETERS["mnist"] = {"num_classes": 10, "mean": 0.1, "expand": True}
 HYPER_PARAMETERS["FMNIST2"] = {"num_classes": 2, "mean": 0.5, "expand": False}
+HYPER_PARAMETERS["pointer_3"] = {"num_classes": 2, "mean": 0.0, "expand": False}
+HYPER_PARAMETERS["pointer_majority_3_3"] = {"num_classes": 2, "mean": 0.0, "expand": False}
+HYPER_PARAMETERS["pointer_majority_3_6"] = {"num_classes": 2, "mean": 0.0, "expand": False}
 
 def load_dataset(dataset_name, **kwargs):
     assert dataset_name in DATASETS
@@ -31,6 +37,8 @@ def load_dataset(dataset_name, **kwargs):
         labels = kwargs.get("labels", [3, 0])
         ratio = kwargs.get("ratio", 1)
         return load_cifar2(labels, ratio)
+    elif "pointer" in dataset_name:
+        return load_pvr(dataset_name, **kwargs)
     else:
         (X_train, Y_train, X_test, Y_test) = prep_data(dataset=dataset_name, CNN=False, noise_index=0)
     
@@ -153,3 +161,13 @@ def load_cifar2(labels, ratio):
         ind = labels.index(int(YT[i, 0]))
         YT[i, 0] = (2*ind - 1)
     return X, Y, XT.astype(np.float32), YT.astype(np.float32)
+
+def load_pvr(name, **kwargs):
+    address = f"data/pvr/{name}"
+    train_size = kwargs.get("train_size", 0.8)
+    shuffle = kwargs.get("shuffle", True)
+    random_state = kwargs.get("random_state", 0)
+    (X, y) = torch.load(address)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=random_state, train_size=train_size, shuffle=shuffle)
+    return X_train.astype(np.float32), y_train.astype(np.float32).reshape(-1, 1), X_test.astype(np.float32), y_test.astype(np.float32).reshape(-1, 1)
+    

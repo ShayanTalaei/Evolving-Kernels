@@ -73,7 +73,7 @@ class IterativeKernelModel:
         avg = self.avg_diag_of_kernel()
         self.K, self.KT = self.K/avg, self.KT/avg
         
-    def solve(self, reg):
+    def solve(self, reg, verbose=True):
         K, KT, n = self.K, self.KT, self.n_train
         ytrain, ytest = self.Y_train , self.Y_test
         RK = K + reg * np.eye(n, dtype=np.float32)
@@ -87,7 +87,8 @@ class IterativeKernelModel:
             cg = ss.linalg.cg(RK, ytrain[:, 0], maxiter=400, atol=1e-4, tol=1e-4) # - mean
             Theta = np.copy(cg[0]).reshape((n, 1))
         t2 = time.time()
-        print('iteration took %f seconds'%(t2 - t1))
+        if verbose:
+            print('iteration took %f seconds'%(t2 - t1))
         yhat = np.dot(K, Theta) #+ mean
         preds = np.dot(KT, Theta) #+ mean
         res = {}
@@ -96,10 +97,11 @@ class IterativeKernelModel:
         res["Test error"] = np.linalg.norm(ytest - preds) ** 2 / (len(ytest) + 0.0)
         res["Train accuracy"] = compute_accuracy(ytrain , yhat) #-mean
         res["Test accuracy"] = compute_accuracy(ytest, preds) #-mean
-        print('Training Error is %f'%(res["Train error"]))
-        print('Test Error is %f'%(res["Test error"]))
-        print('Training Accuracy is %f'%(res["Train accuracy"]))
-        print('Test Accuracy is %f'%(res["Test accuracy"]))
+        if verbose:
+            print('Training Error is %f'%(res["Train error"]))
+            print('Test Error is %f'%(res["Test error"]))
+            print('Training Accuracy is %f'%(res["Train accuracy"]))
+            print('Test Accuracy is %f'%(res["Test accuracy"]))
         self.logs.append(res)
         return yhat, preds, res
         
