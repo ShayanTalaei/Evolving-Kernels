@@ -28,8 +28,18 @@ HYPER_PARAMETERS["pointer_3"] = {"num_classes": 2, "mean": 0.0, "expand": False}
 HYPER_PARAMETERS["pointer_majority_3_3"] = {"num_classes": 2, "mean": 0.0, "expand": False}
 HYPER_PARAMETERS["pointer_majority_3_6"] = {"num_classes": 2, "mean": 0.0, "expand": False}
 
+for d in [10, 20]:
+    for n in [100, 500, 2000, 5000]:
+        dataset_name = f"f1_n={n}_d={d}"
+        DATASETS.append(dataset_name)
+        HYPER_PARAMETERS[dataset_name] = {"num_classes": 2, "mean": 0.0, "expand": False}
+for d in [2, 4, 10]:
+    for n in [100, 500, 2000]:
+        dataset_name = f"f0_n={n}_d={d}"
+        DATASETS.append(dataset_name)
+        HYPER_PARAMETERS[dataset_name] = {"num_classes": 2, "mean": 0.0, "expand": False}
+
 def load_dataset(dataset_name, **kwargs):
-    assert dataset_name in DATASETS
     if dataset_name == "FMNIST2":
         labels = kwargs.get("labels", [2, 9])
         return load_fmnist(labels)
@@ -37,9 +47,10 @@ def load_dataset(dataset_name, **kwargs):
         labels = kwargs.get("labels", [3, 0])
         ratio = kwargs.get("ratio", 1)
         return load_cifar2(labels, ratio)
-    elif "pointer" in dataset_name:
+    elif ("pointer" in dataset_name) or (dataset_name[0] == "f"):
         return load_pvr(dataset_name, **kwargs)
     else:
+        print("Need to prepare dataset!")
         (X_train, Y_train, X_test, Y_test) = prep_data(dataset=dataset_name, CNN=False, noise_index=0)
     
     return (X_train, Y_train, X_test, Y_test)

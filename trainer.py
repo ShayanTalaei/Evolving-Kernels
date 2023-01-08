@@ -17,8 +17,12 @@ class IterativeKernelModel:
         self.n_train, self.n_test = self.X_train.shape[0], self.X_test.shape[0]
         print(f"Train samples: {self.n_train}, Test samples: {self.n_test}")
         self.X_train, self.X_test = self.X_train.reshape(self.n_train, -1), self.X_test.reshape(self.n_test, -1)
-        hyper_parameters = HYPER_PARAMETERS[dataset_name]
-        self.mean, self.should_expand = hyper_parameters["mean"], hyper_parameters["expand"]
+        if dataset_name in HYPER_PARAMETERS:
+            hyper_parameters = HYPER_PARAMETERS[dataset_name]
+            self.mean, self.should_expand = hyper_parameters["mean"], hyper_parameters["expand"]
+        else:
+            print("HyperParameters are not set! Default values will be used.")
+            self.mean, self.should_expand = 0, False
         if self.should_expand:
             self.Y_train, maxVal = expand(self.Y_train, self.mean, maxVal=None)
             self.Y_test, maxVal = expand(self.Y_test, self.mean, maxVal=maxVal)
@@ -44,7 +48,7 @@ class IterativeKernelModel:
         self.K = self.D_train @ K @ self.D_train
         self.KT = self.D_test @ KT @ self.D_train
         ## Normalize the kernels
-        self.normalize_kernels()
+        # self.normalize_kernels()
         if ind < len(self.Ks):
             self.Ks[ind] = deepcopy(self.K)
             self.KTs[ind] = deepcopy(self.KT)
@@ -61,7 +65,7 @@ class IterativeKernelModel:
             K += self.Ks[i] * weights[i]
             KT += self.KTs[i] * weights[i]
         self.K, self.KT = K, KT
-        self.normalize_kernels()
+        # self.normalize_kernels()
         
     def reset_kernels(self, ind):
         self.K, self.KT = deepcopy(self.Ks[ind]), deepcopy(self.KTs[ind])
@@ -73,7 +77,7 @@ class IterativeKernelModel:
         avg = self.avg_diag_of_kernel()
         self.K, self.KT = self.K/avg, self.KT/avg
         
-    def solve(self, reg, verbose=True):
+    def solve(self, reg, verbose=True, max_iter=400):
         K, KT, n = self.K, self.KT, self.n_train
         ytrain, ytest = self.Y_train , self.Y_test
         RK = K + reg * np.eye(n, dtype=np.float32)
@@ -84,8 +88,10 @@ class IterativeKernelModel:
         if self.should_expand:
             Theta = scl.solve(RK, ytrain, assume_a='sym')
         else:
-            cg = ss.linalg.cg(RK, ytrain[:, 0], maxiter=400, atol=1e-4, tol=1e-4) # - mean
-            Theta = np.copy(cg[0]).reshape((n, 1))
+            Theta, exit_code = ss.linalg.cg(RK, ytrain[:, 0], maxiter=max_iter) # - mean, , atol=1e-4, tol=1e-4
+            Theta = np.copy(Theta).reshape((n, 1))
+            if exit_code:
+                print(f"Exit code: {exit_code}")
         t2 = time.time()
         if verbose:
             print('iteration took %f seconds'%(t2 - t1))
@@ -103,7 +109,7 @@ class IterativeKernelModel:
             print('Training Accuracy is %f'%(res["Train accuracy"]))
             print('Test Accuracy is %f'%(res["Test accuracy"]))
         self.logs.append(res)
-        return yhat, preds, res
+        return yhat, preds, res, Theta
         
     
-    
+            

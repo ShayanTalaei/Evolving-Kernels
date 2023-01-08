@@ -3,6 +3,7 @@ import torch
 from torch import nn
 import gspread
 import pandas as pd
+import itertools
 
 
 import pdb
@@ -27,9 +28,9 @@ def compute_accuracy(true_labels, preds):
             n = len(true_labels)
             true_labels = true_labels.reshape((n, 1))
             preds = preds.reshape((n, 1))
-            preds = preds > mid
+            true_preds = preds > mid
             inds = true_labels > mid
-            return np.mean(preds == inds)
+            return np.mean(np.logical_or((true_preds == inds), (abs(true_labels-preds)<0.1)))
         groundTruth = np.argmax(true_labels, axis=1).astype(np.int32)
         predictions = np.argmax(preds, axis=1).astype(np.int32)
         return np.mean(groundTruth == predictions)
@@ -121,4 +122,24 @@ def update_spread_sheet(title, file_path):
     new_df = df.filter(['Instructions', 'Train error', 'Test error', 'Train accuracy', 'Test accuracy'], axis=1)
     worksheet.update([new_df.columns.values.tolist()] + new_df.values.tolist())
 
-    
+def comp_dot_funcs(f, d, monomial):
+    # Computes sum f.monomial for all possible values of monomial (its list of powers).
+    # Input dimension of f is d.
+    deg_monom = len(monomial)
+    binary_combs = np.array(list(itertools.product([-1, 1], repeat=deg_monom)))
+    X = np.zeros((2**deg_monom, d))
+    X[:, monomial] = binary_combs
+    f_X = f(X)
+    f_dot_X = f_X*np.prod(X, 1)
+    return np.sum(f_dot_X)
+
+def get_boolean_representation(X_all, f_X, deg_to_show):
+    d = X_all.shape[1]
+    poly = {}
+    powerSet = []
+    for k in range(deg_to_show+1):
+        powerSet += list(itertools.combinations(np.arange(d), k))
+    count = len(f_X)
+    for power in powerSet:
+        poly[power] = np.sum(np.dot(f_X.T, np.prod(X_all[:, power],1, keepdims=1)))/count
+    return poly
